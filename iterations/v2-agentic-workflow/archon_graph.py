@@ -1,15 +1,23 @@
-from pydantic_ai.models.openai import OpenAIModel
-from pydantic_ai import Agent, RunContext
-from langgraph.graph import StateGraph, START, END
-from langgraph.checkpoint.memory import MemorySaver
-from typing import TypedDict, Annotated, List, Any
-from langgraph.config import get_stream_writer
-from langgraph.types import interrupt
-from dotenv import load_dotenv
-from openai import AsyncOpenAI
-from supabase import Client
-import logfire
 import os
+import time
+import asyncio
+import json
+from typing import TypedDict, List, Dict, Any, Optional, Union, Literal
+import sys
+from pathlib import Path
+
+# Add the parent directory to sys.path so we can import the env_loader module
+sys.path.append(str(Path(__file__).parent.parent.parent))
+from iterations.env_loader import loaded as env_loaded
+
+# Import LangGraph components
+from langgraph.graph import StateGraph, END
+from langgraph.types import Command
+
+# Import the Pydantic AI coder agent
+from pydantic_ai_coder import pydantic_ai_coder, PydanticAIDeps, TextResponse
+from openai import AsyncOpenAI
+from supabase import Client, create_client
 
 # Import the message classes from Pydantic AI
 from pydantic_ai.messages import (
@@ -19,22 +27,19 @@ from pydantic_ai.messages import (
 
 from pydantic_ai_coder import pydantic_ai_coder, PydanticAIDeps, list_documentation_pages_helper
 
-# Load environment variables
-load_dotenv()
-
 # Configure logfire to suppress warnings (optional)
 logfire.configure(send_to_logfire='never')
 
-base_url = os.getenv('BASE_URL', 'https://api.openai.com/v1')
-api_key = os.getenv('LLM_API_KEY', 'no-llm-api-key-provided')
+base_url = env_loaded.get('BASE_URL', 'https://api.openai.com/v1')
+api_key = env_loaded.get('LLM_API_KEY', 'no-llm-api-key-provided')
 is_ollama = "localhost" in base_url.lower()
-reasoner_llm_model = os.getenv('REASONER_MODEL', 'o3-mini')
+reasoner_llm_model = env_loaded.get('REASONER_MODEL', 'o3-mini')
 reasoner = Agent(  
     OpenAIModel(reasoner_llm_model, base_url=base_url, api_key=api_key),
     system_prompt='You are an expert at coding AI agents with Pydantic AI and defining the scope for doing so.',  
 )
 
-primary_llm_model = os.getenv('PRIMARY_MODEL', 'gpt-4o-mini')
+primary_llm_model = env_loaded.get('PRIMARY_MODEL', 'gpt-4o-mini')
 router_agent = Agent(  
     OpenAIModel(primary_llm_model, base_url=base_url, api_key=api_key),
     system_prompt='Your job is to route the user message either to the end of the conversation or to continue coding the AI agent.',  
@@ -50,11 +55,11 @@ openai_client=None
 if is_ollama:
     openai_client = AsyncOpenAI(base_url=base_url,api_key=api_key)
 else:
-    openai_client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+    openai_client = AsyncOpenAI(api_key=env_loaded.get("OPENAI_API_KEY"))
 
 supabase: Client = Client(
-    os.getenv("SUPABASE_URL"),
-    os.getenv("SUPABASE_SERVICE_KEY")
+    env_loaded.get("SUPABASE_URL"),
+    env_loaded.get("SUPABASE_SERVICE_KEY")
 )
 
 # Define state schema

@@ -1,29 +1,27 @@
-from pydantic_ai.models.openai import OpenAIModel
-from pydantic_ai import Agent, RunContext
-from langgraph.graph import StateGraph, START, END
-from langgraph.checkpoint.memory import MemorySaver
-from typing import TypedDict, Annotated, List, Any
-from langgraph.config import get_stream_writer
-from langgraph.types import interrupt
-from dotenv import load_dotenv
-from openai import AsyncOpenAI
-from supabase import Client
-import logfire
 import os
+import time
+import asyncio
+import json
+from typing import TypedDict, List, Dict, Any, Optional, Union, Literal
 import sys
+from pathlib import Path
 
-# Import the message classes from Pydantic AI
-from pydantic_ai.messages import (
-    ModelMessage,
-    ModelMessagesTypeAdapter
-)
+# Add the parent directory to sys.path so we can import the env_loader module
+sys.path.append(str(Path(__file__).parent.parent.parent.parent))
+from iterations.env_loader import loaded as env_loaded
 
-# Add the parent directory to Python path
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from archon.pydantic_ai_coder import pydantic_ai_coder, PydanticAIDeps, list_documentation_pages_helper
+import logfire
+from langgraph.graph import StateGraph, END
+from langgraph.types import Command
+from pydantic_ai.models.openai import OpenAIModel
+from pydantic_ai import Agent
+from openai import AsyncOpenAI
+from supabase import Client, create_client
 
-# Load environment variables
-load_dotenv()
+# Import the Agent and Dependencies
+from archon.pydantic_ai_coder import pydantic_ai_coder, PydanticAIDeps, TextResponse, list_documentation_pages_helper
+
+# No need for load_dotenv() since we're using the env_loader module
 
 # Configure logfire to suppress warnings (optional)
 logfire.configure(send_to_logfire='never')

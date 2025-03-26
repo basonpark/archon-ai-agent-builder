@@ -1,11 +1,18 @@
 from __future__ import annotations as _annotations
 
 from dataclasses import dataclass
-from dotenv import load_dotenv
+# Import our root env loader instead of directly loading .env
+import sys
+import os
+from pathlib import Path
+
+# Add the parent directory to sys.path so we can import the env_loader module
+sys.path.append(str(Path(__file__).parent.parent.parent))
+from iterations.env_loader import loaded as env_loaded
+
 import logfire
 import asyncio
 import httpx
-import os
 
 from pydantic_ai import Agent, ModelRetry, RunContext
 from pydantic_ai.models.openai import OpenAIModel
@@ -13,7 +20,7 @@ from openai import AsyncOpenAI
 from supabase import Client
 from typing import List
 
-load_dotenv()
+# No need for load_dotenv() since we're using the env_loader module
 
 llm = os.getenv('LLM_MODEL', 'gpt-4o-mini')
 model = OpenAIModel(llm)

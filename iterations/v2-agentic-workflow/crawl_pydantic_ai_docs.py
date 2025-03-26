@@ -1,39 +1,46 @@
+"""
+This script crawls the Pydantic AI documentation and stores it in a Supabase vector database.
+It's used to create a knowledge base for the Pydantic AI Coder agent.
+"""
+
+import asyncio
+import httpx
 import os
 import sys
+from pathlib import Path
+
+# Add the parent directory to sys.path so we can import the env_loader module
+sys.path.append(str(Path(__file__).parent.parent.parent))
+from iterations.env_loader import loaded as env_loaded
+
+import re
 import json
-import asyncio
-import requests
-from xml.etree import ElementTree
-from typing import List, Dict, Any
-from dataclasses import dataclass
-from datetime import datetime, timezone
-from urllib.parse import urlparse
-from dotenv import load_dotenv
+from bs4 import BeautifulSoup
+from urllib.parse import urlparse, urljoin
+from typing import List, Dict, Any, Set, Tuple
+from supabase import create_client
+from openai import OpenAI
 
-from crawl4ai import AsyncWebCrawler, BrowserConfig, CrawlerRunConfig, CacheMode
-from openai import AsyncOpenAI
-from supabase import create_client, Client
-
-load_dotenv()
+# No need for load_dotenv() since we're using the env_loader module
 
 # Initialize OpenAI and Supabase clients
 
-base_url = os.getenv('BASE_URL', 'https://api.openai.com/v1')
-api_key = os.getenv('LLM_API_KEY', 'no-llm-api-key-provided')
+base_url = env_loaded.get('BASE_URL', 'https://api.openai.com/v1')
+api_key = env_loaded.get('LLM_API_KEY', 'no-llm-api-key-provided')
 is_ollama = "localhost" in base_url.lower()
 
-embedding_model = os.getenv('EMBEDDING_MODEL', 'text-embedding-3-small')
+embedding_model = env_loaded.get('EMBEDDING_MODEL', 'text-embedding-3-small')
 
 openai_client=None
 
 if is_ollama:
-    openai_client = AsyncOpenAI(base_url=base_url,api_key=api_key)
+    openai_client = OpenAI(base_url=base_url,api_key=api_key)
 else:
-    openai_client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+    openai_client = OpenAI(api_key=env_loaded.get("OPENAI_API_KEY"))
 
-supabase: Client = create_client(
-    os.getenv("SUPABASE_URL"),
-    os.getenv("SUPABASE_SERVICE_KEY")
+supabase = create_client(
+    env_loaded.get("SUPABASE_URL"),
+    env_loaded.get("SUPABASE_SERVICE_KEY")
 )
 
 @dataclass
@@ -101,7 +108,7 @@ async def get_title_and_summary(chunk: str, url: str) -> Dict[str, str]:
     
     try:
         response = await openai_client.chat.completions.create(
-            model=os.getenv("PRIMARY_MODEL", "gpt-4o-mini"),
+            model=env_loaded.get("PRIMARY_MODEL", "gpt-4o-mini"),
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": f"URL: {url}\n\nContent:\n{chunk[:1000]}..."}  # Send first 1000 chars for context

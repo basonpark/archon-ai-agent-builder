@@ -1,19 +1,23 @@
 from __future__ import annotations
-from typing import Literal, TypedDict
-from langgraph.types import Command
-from openai import AsyncOpenAI
-from supabase import Client
-import streamlit as st
-import logfire
+from typing import List, Dict, Any, Optional, Literal, TypedDict
 import asyncio
-import json
 import uuid
+import json
 import os
 import sys
+from pathlib import Path
 
-# Import all the message part classes
+# Add the parent directory to sys.path so we can import the env_loader module
+sys.path.append(str(Path(__file__).parent.parent.parent))
+from iterations.env_loader import loaded as env_loaded
+
+import streamlit as st
+import logfire
+from openai import AsyncOpenAI
+from supabase import create_client, Client
+
+# Import message classes
 from pydantic_ai.messages import (
-    ModelMessage,
     ModelRequest,
     ModelResponse,
     SystemPromptPart,
@@ -21,18 +25,11 @@ from pydantic_ai.messages import (
     TextPart,
     ToolCallPart,
     ToolReturnPart,
-    RetryPromptPart,
-    ModelMessagesTypeAdapter
 )
 
-# Add the current directory to Python path
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-from archon.archon_graph import agentic_flow
+from archon.archon_graph import agentic_flow, is_ollama, get_deps
 
-# Load environment variables
-from dotenv import load_dotenv
-load_dotenv()
-
+# No need for load_dotenv() since we're using the env_loader module
 
 openai_client=None
 base_url = os.getenv('BASE_URL', 'https://api.openai.com/v1')

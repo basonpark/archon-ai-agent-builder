@@ -1,13 +1,16 @@
 import os
-from datetime import datetime
-from functools import wraps
-import inspect
-import json
-from typing import Optional
-from dotenv import load_dotenv
+import sys
+from pathlib import Path
 
-# Load environment variables from .env file
-load_dotenv()
+# Add the parent directory to sys.path so we can import the env_loader module
+sys.path.append(str(Path(__file__).parent.parent.parent.parent))
+from iterations.env_loader import loaded as env_loaded
+
+import time
+import json
+import random
+import subprocess
+from typing import List, Dict, Any, Optional, Tuple, Literal, TypedDict
 
 def write_to_log(message: str):
     """Write a message to the logs.txt file in the workbench directory.
@@ -22,7 +25,7 @@ def write_to_log(message: str):
     log_path = os.path.join(workbench_dir, "logs.txt")
     os.makedirs(workbench_dir, exist_ok=True)
 
-    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
     log_entry = f"[{timestamp}] {message}\n"
 
     with open(log_path, "a", encoding="utf-8") as f:

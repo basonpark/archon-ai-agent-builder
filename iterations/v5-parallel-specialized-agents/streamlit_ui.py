@@ -1,8 +1,20 @@
 from __future__ import annotations
-from dotenv import load_dotenv
+import os
+import sys
+from pathlib import Path
+
+# Add the parent directory to sys.path so we can import the env_loader module
+sys.path.append(str(Path(__file__).parent.parent.parent))
+from iterations.env_loader import loaded as env_loaded
+
+import asyncio
 import streamlit as st
 import logfire
-import asyncio
+import streamlit.components.v1 as components
+from streamlit_extras.colored_header import colored_header
+from streamlit_extras.switch_page_button import switch_page
+from streamlit_extras.keyboard_text import key
+import time
 
 # Set page config - must be the first Streamlit command
 st.set_page_config(
@@ -24,9 +36,6 @@ from streamlit_pages.documentation import documentation_tab
 from streamlit_pages.agent_service import agent_service_tab
 from streamlit_pages.mcp import mcp_tab
 from streamlit_pages.future_enhancements import future_enhancements_tab
-
-# Load environment variables from .env file
-load_dotenv()
 
 # Initialize clients
 openai_client, supabase = get_clients()

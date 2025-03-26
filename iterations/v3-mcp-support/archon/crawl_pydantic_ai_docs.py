@@ -3,18 +3,23 @@ import sys
 import json
 import asyncio
 import requests
+from pathlib import Path
+
+# Add the parent directory to sys.path so we can import the env_loader module
+sys.path.append(str(Path(__file__).parent.parent.parent.parent))
+from iterations.env_loader import loaded as env_loaded
+
 from xml.etree import ElementTree
 from typing import List, Dict, Any
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from urllib.parse import urlparse
-from dotenv import load_dotenv
 
 from crawl4ai import AsyncWebCrawler, BrowserConfig, CrawlerRunConfig, CacheMode
 from openai import AsyncOpenAI
 from supabase import create_client, Client
 
-load_dotenv()
+# No need for load_dotenv() since we're using the env_loader module
 
 # Initialize OpenAI and Supabase clients
 

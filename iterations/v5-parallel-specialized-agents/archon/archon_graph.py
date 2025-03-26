@@ -12,15 +12,23 @@ from supabase import Client
 import logfire
 import os
 import sys
+from pathlib import Path
 
-# Import the message classes from Pydantic AI
+# Add the parent directory to sys.path so we can import the env_loader module
+sys.path.append(str(Path(__file__).parent.parent.parent.parent))
+from iterations.env_loader import loaded as env_loaded
+
+import time
+import asyncio
+import json
+from typing import TypedDict, List, Dict, Any, Optional, Union, Literal
+import logfire
+from langgraph.graph import StateGraph, END
+from langgraph.types import Command
 from pydantic_ai.messages import (
     ModelMessage,
     ModelMessagesTypeAdapter
 )
-
-# Add the parent directory to Python path
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from archon.pydantic_ai_coder import pydantic_ai_coder, PydanticAIDeps
 from archon.refiner_agents.prompt_refiner_agent import prompt_refiner_agent
 from archon.refiner_agents.tools_refiner_agent import tools_refiner_agent, ToolsRefinerDeps

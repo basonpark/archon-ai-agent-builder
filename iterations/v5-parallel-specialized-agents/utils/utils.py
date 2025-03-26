@@ -11,6 +11,15 @@ import inspect
 import json
 import sys
 import os
+from pathlib import Path
+
+# Add the parent directory to sys.path so we can import the env_loader module
+sys.path.append(str(Path(__file__).parent.parent.parent.parent))
+from iterations.env_loader import loaded as env_loaded
+
+import time
+import random
+import subprocess
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 

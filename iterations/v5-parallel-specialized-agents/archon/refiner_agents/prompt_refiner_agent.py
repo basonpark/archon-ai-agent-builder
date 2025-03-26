@@ -3,8 +3,16 @@ from __future__ import annotations as _annotations
 import logfire
 import os
 import sys
+from pathlib import Path
+
+# Add the parent directory to sys.path so we can import the env_loader module
+sys.path.append(str(Path(__file__).parent.parent.parent.parent.parent))
+from iterations.env_loader import loaded as env_loaded
+
+import asyncio
+import json
+from typing import List, Dict, Any, Optional, Literal
 from pydantic_ai import Agent
-from dotenv import load_dotenv
 from pydantic_ai.models.anthropic import AnthropicModel
 from pydantic_ai.models.openai import OpenAIModel
 from supabase import Client
@@ -13,8 +21,6 @@ from supabase import Client
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 from utils.utils import get_env_var
 from archon.agent_prompts import prompt_refiner_prompt
-
-load_dotenv()
 
 provider = get_env_var('LLM_PROVIDER') or 'OpenAI'
 llm = get_env_var('PRIMARY_MODEL') or 'gpt-4o-mini'

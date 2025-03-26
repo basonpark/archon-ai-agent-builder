@@ -1,46 +1,32 @@
 from __future__ import annotations
-from typing import Literal, TypedDict
-from langgraph.types import Command
-from openai import AsyncOpenAI
-from supabase import Client
-import streamlit as st
-import logfire
+from typing import Literal, TypedDict, List, Dict, Any, Optional
 import asyncio
-import json
-import uuid
 import os
+import sys
+from pathlib import Path
 
-# Import all the message part classes
+# Add the parent directory to sys.path so we can import the env_loader module
+sys.path.append(str(Path(__file__).parent.parent.parent))
+from iterations.env_loader import loaded as env_loaded
+
+import streamlit as st
+import json
+import logfire
+from supabase import Client
+from openai import AsyncOpenAI
+
 from pydantic_ai.messages import (
-    ModelMessage,
     ModelRequest,
     ModelResponse,
-    SystemPromptPart,
-    UserPromptPart,
     TextPart,
-    ToolCallPart,
-    ToolReturnPart,
-    RetryPromptPart,
-    ModelMessagesTypeAdapter
+    UserPromptPart,
 )
 
-from archon_graph import agentic_flow
+import archon_graph
 
-# Load environment variables
-from dotenv import load_dotenv
-load_dotenv()
+# No need for load_dotenv() since we're using the env_loader module
 
-openai_client=None
-
-base_url = os.getenv('BASE_URL', 'https://api.openai.com/v1')
-api_key = os.getenv('LLM_API_KEY', 'no-llm-api-key-provided')
-is_ollama = "localhost" in base_url.lower()
-
-if is_ollama:
-    openai_client = AsyncOpenAI(base_url=base_url,api_key=api_key)
-else:
-    openai_client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-
+openai_client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 supabase: Client = Client(
     os.getenv("SUPABASE_URL"),
     os.getenv("SUPABASE_SERVICE_KEY")
@@ -68,14 +54,14 @@ async def run_agent_with_streaming(user_input: str):
 
     # First message from user
     if len(st.session_state.messages) == 1:
-        async for msg in agentic_flow.astream(
+        async for msg in archon_graph.agentic_flow.astream(
                 {"latest_user_message": user_input}, config, stream_mode="custom"
             ):
                 yield msg
     # Continue the conversation
     else:
-        async for msg in agentic_flow.astream(
-            Command(resume=user_input), config, stream_mode="custom"
+        async for msg in archon_graph.agentic_flow.astream(
+            archon_graph.Command(resume=user_input), config, stream_mode="custom"
         ):
             yield msg
 

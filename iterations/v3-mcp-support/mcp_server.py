@@ -1,5 +1,11 @@
 import os
 import sys
+from pathlib import Path
+
+# Add the parent directory to sys.path so we can import the env_loader module
+sys.path.append(str(Path(__file__).parent.parent.parent))
+from iterations.env_loader import loaded as env_loaded
+
 import asyncio
 import threading
 from mcp.server.fastmcp import FastMCP

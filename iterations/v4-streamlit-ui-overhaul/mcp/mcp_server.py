@@ -1,16 +1,22 @@
-from mcp.server.fastmcp import FastMCP
-from datetime import datetime
-from dotenv import load_dotenv
-from typing import Dict, List
-import threading
-import requests
-import asyncio
-import uuid
 import sys
 import os
+from pathlib import Path
 
-# Load environment variables from .env file
-load_dotenv()
+# Add the parent directory to sys.path so we can import the env_loader module
+sys.path.append(str(Path(__file__).parent.parent.parent.parent))
+from iterations.env_loader import loaded as env_loaded
+
+import asyncio
+import threading
+import uvicorn
+from fastapi import FastAPI, Request, Response
+from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
+from mcp.server.fastmcp import FastMCP
+from datetime import datetime
+from typing import Dict, List
+import requests
+import uuid
 
 # Initialize FastMCP server
 mcp = FastMCP("archon")
@@ -19,7 +25,7 @@ mcp = FastMCP("archon")
 active_threads: Dict[str, List[str]] = {}
 
 # FastAPI service URL
-GRAPH_SERVICE_URL = os.getenv("GRAPH_SERVICE_URL", "http://localhost:8100")
+GRAPH_SERVICE_URL = env_loaded.get("GRAPH_SERVICE_URL", "http://localhost:8100")
 
 def write_to_log(message: str):
     """Write a message to the logs.txt file in the workbench directory.

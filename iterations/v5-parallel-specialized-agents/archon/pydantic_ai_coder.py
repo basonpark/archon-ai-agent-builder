@@ -1,14 +1,19 @@
 from __future__ import annotations as _annotations
 
 from dataclasses import dataclass
-from dotenv import load_dotenv
+import sys
+import os
+from pathlib import Path
+
+# Add the parent directory to sys.path so we can import the env_loader module
+sys.path.append(str(Path(__file__).parent.parent.parent))
+from iterations.env_loader import loaded as env_loaded
+
 import logfire
 import asyncio
 import httpx
-import os
-import sys
 import json
-from typing import List
+from typing import List, Dict, Any, Optional
 from pydantic import BaseModel
 from pydantic_ai import Agent, ModelRetry, RunContext
 from pydantic_ai.models.anthropic import AnthropicModel
@@ -25,8 +30,6 @@ from archon.agent_tools import (
     list_documentation_pages_tool,
     get_page_content_tool
 )
-
-load_dotenv()
 
 provider = get_env_var('LLM_PROVIDER') or 'OpenAI'
 llm = get_env_var('PRIMARY_MODEL') or 'gpt-4o-mini'

@@ -2,6 +2,7 @@ from __future__ import annotations
 from typing import Literal, TypedDict
 from langgraph.types import Command
 import os
+from pathlib import Path
 
 import streamlit as st
 import logfire
@@ -37,12 +38,9 @@ from pydantic_ai.messages import (
     ModelMessagesTypeAdapter
 )
 
-# Add the current directory to Python path
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-from archon.archon_graph import agentic_flow
-
-# Load environment variables from .env file
-load_dotenv()
+# Add the parent directory to sys.path so we can import the env_loader module
+sys.path.append(str(Path(__file__).parent.parent.parent))
+from iterations.env_loader import loaded as env_loaded
 
 # Initialize clients
 openai_client = None

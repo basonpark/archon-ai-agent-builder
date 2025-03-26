@@ -1,29 +1,34 @@
 from __future__ import annotations as _annotations
 
 from dataclasses import dataclass
-from dotenv import load_dotenv
+# Import our root env loader instead of directly loading .env
+import sys
+import os
+from pathlib import Path
+
+# Add the parent directory to sys.path so we can import the env_loader module
+sys.path.append(str(Path(__file__).parent.parent.parent))
+from iterations.env_loader import loaded as env_loaded
+
 import logfire
 import asyncio
 import httpx
-import os
 
 from pydantic_ai import Agent, ModelRetry, RunContext
-from pydantic_ai.models.openai import OpenAIModel
+from pydantic_ai.models.openai import OpenAIModel, OpenAIChat
 from openai import AsyncOpenAI
 from supabase import Client
-from typing import List
+from typing import List, Dict, Any, Optional
 
-load_dotenv()
+# No need for load_dotenv() since we're using the env_loader module
 
-llm = os.getenv('PRIMARY_MODEL', 'gpt-4o-mini')
-base_url = os.getenv('BASE_URL', 'https://api.openai.com/v1')
-api_key = os.getenv('LLM_API_KEY', 'no-llm-api-key-provided')
-model = OpenAIModel(llm, base_url=base_url, api_key=api_key)
+llm = os.getenv('LLM_MODEL', 'gpt-4o-mini')
+model = OpenAIModel(llm)
 embedding_model = os.getenv('EMBEDDING_MODEL', 'text-embedding-3-small')
 
 logfire.configure(send_to_logfire='if-token-present')
 
-is_ollama = "localhost" in base_url.lower()
+is_ollama = "localhost" in llm.lower()
 
 @dataclass
 class PydanticAIDeps:
