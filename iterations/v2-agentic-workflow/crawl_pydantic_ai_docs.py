@@ -7,6 +7,10 @@ import asyncio
 import httpx
 import os
 import sys
+import requests
+from xml.etree import ElementTree
+from dataclasses import dataclass
+from datetime import datetime, timezone
 from pathlib import Path
 
 # Add the parent directory to sys.path so we can import the env_loader module
@@ -20,6 +24,7 @@ from urllib.parse import urlparse, urljoin
 from typing import List, Dict, Any, Set, Tuple
 from supabase import create_client
 from openai import OpenAI
+from crawl4ai import AsyncWebCrawler, BrowserConfig, CrawlerRunConfig, CacheMode
 
 # No need for load_dotenv() since we're using the env_loader module
 
@@ -120,17 +125,23 @@ async def get_title_and_summary(chunk: str, url: str) -> Dict[str, str]:
         print(f"Error getting title and summary: {e}")
         return {"title": "Error processing title", "summary": "Error processing summary"}
 
-async def get_embedding(text: str) -> List[float]:
-    """Get embedding vector from OpenAI."""
-    try:
-        response = await openai_client.embeddings.create(
-            model= embedding_model,
-            input=text
-        )
-        return response.data[0].embedding
-    except Exception as e:
-        print(f"Error getting embedding: {e}")
-        return [0] * 1536  # Return zero vector on error
+async def get_embedding(text: str, max_retries: int = 3) -> List[float]:
+    """Get embedding vector from OpenAI with retry logic."""
+    retries = 0
+    while retries < max_retries:
+        try:
+            response = await openai_client.embeddings.create(
+                model= embedding_model,
+                input=text
+            )
+            return response.data[0].embedding
+        except Exception as e:
+            retries += 1
+            if retries >= max_retries:
+                print(f"Error getting embedding after {max_retries} attempts: {e}")
+                return [0] * 1536  # Return zero vector on error
+            print(f"Embedding attempt {retries} failed: {e}. Retrying...")
+            await asyncio.sleep(2 * retries)  # Exponential backoff
 
 async def process_chunk(chunk: str, chunk_number: int, url: str) -> ProcessedChunk:
     """Process a single chunk of text."""
@@ -170,6 +181,12 @@ async def insert_chunk(chunk: ProcessedChunk):
             "metadata": chunk.metadata,
             "embedding": chunk.embedding
         }
+        
+        # Check if the chunk already exists
+        existing = supabase.table("site_pages").select("id").eq("url", chunk.url).eq("chunk_number", chunk.chunk_number).execute()
+        if existing.data and len(existing.data) > 0:
+            print(f"Chunk {chunk.chunk_number} for {chunk.url} already exists, skipping")
+            return existing
         
         result = supabase.table("site_pages").insert(data).execute()
         print(f"Inserted chunk {chunk.chunk_number} for {chunk.url}")
@@ -216,16 +233,19 @@ async def crawl_parallel(urls: List[str], max_concurrent: int = 5):
         
         async def process_url(url: str):
             async with semaphore:
-                result = await crawler.arun(
-                    url=url,
-                    config=crawl_config,
-                    session_id="session1"
-                )
-                if result.success:
-                    print(f"Successfully crawled: {url}")
-                    await process_and_store_document(url, result.markdown_v2.raw_markdown)
-                else:
-                    print(f"Failed: {url} - Error: {result.error_message}")
+                try:
+                    result = await crawler.arun(
+                        url=url,
+                        config=crawl_config,
+                        session_id="session1"
+                    )
+                    if result.success:
+                        print(f"Successfully crawled: {url}")
+                        await process_and_store_document(url, result.markdown_v2.raw_markdown)
+                    else:
+                        print(f"Failed: {url} - Error: {result.error_message}")
+                except Exception as e:
+                    print(f"Error processing URL {url}: {e}")
         
         # Process all URLs in parallel with limited concurrency
         await asyncio.gather(*[process_url(url) for url in urls])
@@ -253,13 +273,16 @@ def get_pydantic_ai_docs_urls() -> List[str]:
 
 async def main():
     # Get URLs from Pydantic AI docs
-    urls = get_pydantic_ai_docs_urls()
-    if not urls:
-        print("No URLs found to crawl")
-        return
-    
-    print(f"Found {len(urls)} URLs to crawl")
-    await crawl_parallel(urls)
+    try:
+        urls = get_pydantic_ai_docs_urls()
+        if not urls:
+            print("No URLs found to crawl")
+            return
+        
+        print(f"Found {len(urls)} URLs to crawl")
+        await crawl_parallel(urls)
+    except Exception as e:
+        print(f"Error in main process: {e}")
 
 if __name__ == "__main__":
     asyncio.run(main())
