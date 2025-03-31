@@ -109,7 +109,7 @@ pyasn1==0.6.1
 pyasn1_modules==0.4.1
 pycparser==2.22
 pydantic==2.10.5
-pydantic-ai==0.0.22
+pydantic-ai==0.0.46
 pydantic-ai-slim==0.0.22
 pydantic-extra-types==2.10.2
 pydantic-graph==0.0.22
