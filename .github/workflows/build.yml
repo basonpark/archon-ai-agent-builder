@@ -30,7 +30,7 @@ jobs:
     continue-on-error: ${{ matrix.experimental || false }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3
 
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38
@@ -64,7 +64,7 @@ jobs:
     continue-on-error: ${{ matrix.experimental || false }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3
 
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38
